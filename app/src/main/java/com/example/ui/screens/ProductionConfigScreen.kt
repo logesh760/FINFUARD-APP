@@ -1,10 +1,14 @@
 package com.example.ui.screens
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -270,6 +274,74 @@ fun ProductionConfigScreen(
                             lineHeight = 15.sp
                         )
 
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        val isNotificationAccessGranted = remember(context) {
+                            try {
+                                NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
+                            } catch (e: Exception) {
+                                false
+                            }
+                        }
+                        val isSmsGranted = remember(context) {
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                color = if (isSmsGranted) FinEmerald.copy(alpha = 0.15f) else FinAmber.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (isSmsGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = if (isSmsGranted) FinEmerald else FinAmber,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (isSmsGranted) "SMS: Granted" else "SMS: Not Granted",
+                                        color = if (isSmsGranted) FinEmerald else FinAmber,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                color = if (isNotificationAccessGranted) FinEmerald.copy(alpha = 0.15f) else FinAmber.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (isNotificationAccessGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = if (isNotificationAccessGranted) FinEmerald else FinAmber,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (isNotificationAccessGranted) "Notifications: Active" else "Notifications: Inactive",
+                                        color = if (isNotificationAccessGranted) FinEmerald else FinAmber,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Row(
@@ -301,6 +373,48 @@ fun ProductionConfigScreen(
                                 Icon(imageVector = Icons.Default.Email, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("Request SMS Perms", fontSize = 11.sp)
+                            }
+                        }
+
+                        if (!isNotificationAccessGranted) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Surface(
+                                color = FinNavyElevated,
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, FinAmber.copy(alpha = 0.4f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Info, contentDescription = null, tint = FinAmber, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Android 13+ Sideload Notice (\"Restricted setting\")", color = FinAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Android protects sideloaded APKs by restricting Notification Access. To allow:\n1. Tap 'Open App Info' below\n2. Tap the three-dot menu (⋮) in the top-right corner\n3. Tap 'Allow restricted settings' and confirm device PIN\n4. Return here and tap 'Enable Notification Access'",
+                                        color = FinTextSecondary,
+                                        fontSize = 10.sp,
+                                        lineHeight = 14.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedButton(
+                                        onClick = {
+                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                data = Uri.fromParts("package", context.packageName, null)
+                                            }
+                                            context.startActivity(intent)
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = FinAmber),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, FinAmber.copy(alpha = 0.5f)),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(13.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Open App Info (Allow Restricted)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
                             }
                         }
                     }

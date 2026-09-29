@@ -43,7 +43,8 @@
         <!-- Real-world Notification Listener Service for WhatsApp, Telegram, Instagram & SMS -->
         <service
             android:name=".service.FinGuardNotificationListener"
-            android:label="FinGuard Security Ingest Service"
+            android:label="@string/app_name"
+            android:description="@string/notification_listener_description"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:exported="true">
             <intent-filter>

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">FinGuard</string>
+    <string name="notification_listener_description">FinGuard autonomous financial fraud protection for incoming message notifications</string>
 </resources>

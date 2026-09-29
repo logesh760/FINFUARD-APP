@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Cyber Security Shield Outer Glow/Border -->
+    <path
+        android:fillColor="#153658"
+        android:pathData="M54,23 L31,33 C31,54 41,72 54,82 C67,72 77,54 77,33 Z" />
+    <!-- Cyber Security Shield Core -->
+    <path
+        android:fillColor="#0D223A"
+        android:pathData="M54,26 L34,35 C34,53 43,69 54,78 C65,69 74,53 74,35 Z" />
+    <!-- Shield Accent Line Neon Teal -->
+    <path
+        android:strokeColor="#00F0FF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M54,28 L36,36 C36,52 44,67 54,75 C64,67 72,52 72,36 Z" />
+    <!-- Padlock Shackle in center -->
+    <path
+        android:strokeColor="#00F0FF"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:pathData="M48,48 V44 A6,6 0 0,1 60,44 V48" />
+    <!-- Padlock Body -->
+    <path
+        android:fillColor="#00F0FF"
+        android:pathData="M45,48 H63 A2,2 0 0,1 65,50 V60 A2,2 0 0,1 63,62 H45 A2,2 0 0,1 43,60 V50 A2,2 0 0,1 45,48 Z" />
+    <!-- Padlock Keyhole -->
+    <path
+        android:fillColor="#0A192F"
+        android:pathData="M54,53 A1.8,1.8 0 1,0 54,56.6 V58 H54 Z" />
+</vector>

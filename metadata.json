@@ -1,0 +1,6 @@
+{
+  "name": "FinGuard Security",
+  "description": "Real-time AI-powered financial fraud prevention, multi-platform message threat scanner, and UPI scam protector.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

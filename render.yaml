@@ -1,0 +1,33 @@
+# ==============================================================================
+# Render Free-Tier Infrastructure Configuration (Blueprint)
+# ==============================================================================
+# Service: FinGuard AI Gateway
+# Cost: $0.00 / month (Free Tier)
+# ==============================================================================
+
+services:
+  - type: web
+    name: finguard-ai-gateway
+    runtime: node
+    plan: free
+    region: oregon # or frankfurt, singapore, ohio
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false # User enters their free Google AI Studio key in Render UI
+      - key: SESSION_SIGNING_SECRET
+        generateValue: true # Render automatically generates a 32+ byte cryptographic random secret
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "60"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: REQUEST_TIMEOUT_MS
+        value: "30000"
+      - key: ALLOWED_ORIGINS
+        value: ""

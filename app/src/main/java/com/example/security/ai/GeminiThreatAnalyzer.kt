@@ -42,7 +42,7 @@ object GeminiThreatAnalyzer {
     private const val TAG = "BackendAiGateway"
 
     // Default production gateway endpoint (Strictly HTTPS).
-    var gatewayBaseUrl: String = "https://gateway.finguard.internal"
+    var gatewayBaseUrl: String = "https://finfuard-app.onrender.com"
 
     var okHttpClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)

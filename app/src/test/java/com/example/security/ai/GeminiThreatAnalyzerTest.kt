@@ -34,7 +34,7 @@ class GeminiThreatAnalyzerTest {
     @Before
     fun setUp() {
         originalClient = GeminiThreatAnalyzer.okHttpClient
-        GeminiThreatAnalyzer.gatewayBaseUrl = "https://gateway.finguard.internal"
+        GeminiThreatAnalyzer.gatewayBaseUrl = "https://finfuard-app.onrender.com"
         GeminiThreatAnalyzer.circuitBreaker.reset()
         GeminiThreatAnalyzer.rateLimiter = ClientRateLimiter(maxPermits = 10_000, windowDurationMs = 60_000L)
         GeminiThreatAnalyzer.retryPolicy = GatewayRetryPolicy(
@@ -51,7 +51,7 @@ class GeminiThreatAnalyzerTest {
     @After
     fun tearDown() {
         GeminiThreatAnalyzer.okHttpClient = originalClient
-        GeminiThreatAnalyzer.gatewayBaseUrl = "https://gateway.finguard.internal"
+        GeminiThreatAnalyzer.gatewayBaseUrl = "https://finfuard-app.onrender.com"
         GeminiThreatAnalyzer.circuitBreaker.reset()
         GeminiThreatAnalyzer.rateLimiter = ClientRateLimiter(maxPermits = 10_000, windowDurationMs = 60_000L)
     }

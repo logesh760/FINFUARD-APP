@@ -9,8 +9,8 @@
 
     <!-- Enforce HTTPS and trusted system CA validation for backend AI gateway -->
     <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">finfuard-app.onrender.com</domain>
         <domain includeSubdomains="true">onrender.com</domain>
-        <domain includeSubdomains="true">gateway.finguard.internal</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

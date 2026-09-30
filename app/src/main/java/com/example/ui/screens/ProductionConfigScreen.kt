@@ -334,7 +334,7 @@ fun ProductionConfigScreen(
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
-                                    text = if (isShieldArmed) "SHIELD: ARMED" else "SHIELD: PAUSED",
+                                    text = if (isShieldArmed) "Shield: PROTECTED" else "Shield: PAUSED",
                                     color = if (isShieldArmed) FinEmerald else FinAmber,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
@@ -353,7 +353,7 @@ fun ProductionConfigScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Row 1: SMS Permission & Alert Notification Permission
+                        // Row 1: SMS & FinGuard Notifications
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -400,9 +400,9 @@ fun ProductionConfigScreen(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = if (isPostNotificationsGranted) "Alerts: GRANTED" else "Alerts: NOT GRANTED",
+                                        text = if (isPostNotificationsGranted) "FinGuard Notifications: GRANTED" else "FinGuard Notifications: NOT GRANTED",
                                         color = if (isPostNotificationsGranted) FinEmerald else FinAmber,
-                                        fontSize = 10.sp,
+                                        fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -411,7 +411,7 @@ fun ProductionConfigScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Row 2: Notification Listener Access & Battery Optimization
+                        // Row 2: Notification Listener & Battery
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -442,16 +442,16 @@ fun ProductionConfigScreen(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = when {
-                                            isNotificationAccessGranted -> "Listener: ACTIVE"
-                                            Build.VERSION.SDK_INT >= 33 -> "Listener: SYSTEM RESTRICTED"
-                                            else -> "Listener: NOT ACTIVE"
+                                            isNotificationAccessGranted -> "Notification Listener: ACTIVE"
+                                            Build.VERSION.SDK_INT >= 33 -> "Notification Listener: SYSTEM RESTRICTED"
+                                            else -> "Notification Listener: NOT ACTIVE"
                                         },
                                         color = when {
                                             isNotificationAccessGranted -> FinEmerald
                                             Build.VERSION.SDK_INT >= 33 -> FinCrimson
                                             else -> FinAmber
                                         },
-                                        fontSize = 10.sp,
+                                        fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -485,7 +485,7 @@ fun ProductionConfigScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        // Action Buttons: Notification Listener & SMS
+                        // Action Buttons: Notification Listener Settings & SMS Perms
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -501,7 +501,7 @@ fun ProductionConfigScreen(
                             ) {
                                 Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Enable Notification Access", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("Open Notification Access Settings", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
 
                             OutlinedButton(
@@ -513,7 +513,7 @@ fun ProductionConfigScreen(
                             ) {
                                 Icon(imageVector = Icons.Default.Email, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Request SMS Perms", fontSize = 11.sp)
+                                Text("Request SMS Perms", fontSize = 10.sp)
                             }
                         }
 
@@ -548,31 +548,46 @@ fun ProductionConfigScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Default.Info, contentDescription = null, tint = FinAmber, modifier = Modifier.size(14.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("TECNO HiOS 12.6 / Android 13 (\"Restricted setting\")", color = FinAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("Notification Listener: SYSTEM RESTRICTED", color = FinAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "\"Restricted setting\" is Android 13's OS policy for sideloaded APKs. To unlock on this device:\n1. Tap 'Open App Info' below to go to FinGuard's system page.\n2. Tap the three-dot menu (⋮) in the top-right corner.\n   (Note: HiOS only reveals this menu AFTER you have attempted to toggle Notification Access once).\n3. Tap 'Allow restricted settings' and confirm your screen lock (PIN/fingerprint).\n4. Return here and tap 'Enable Notification Access'. The switch is now active!",
+                                        text = "Android is currently restricting Notification Access for this installation. FinGuard cannot bypass this Android security restriction.\n\nSMS monitoring continues to operate normally regardless of this restriction.",
                                         color = FinTextSecondary,
                                         fontSize = 10.sp,
                                         lineHeight = 14.sp
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedButton(
-                                        onClick = {
-                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                                data = Uri.fromParts("package", context.packageName, null)
-                                            }
-                                            context.startActivity(intent)
-                                        },
+                                    Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = FinAmber),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, FinAmber.copy(alpha = 0.5f)),
-                                        shape = RoundedCornerShape(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(13.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Open App Info (Allow Restricted)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                        Button(
+                                            onClick = {
+                                                val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                                                context.startActivity(intent)
+                                            },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.buttonColors(containerColor = FinCyan, contentColor = Color(0xFF00363D)),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text("Open Notification Access Settings", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = {
+                                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                    data = Uri.fromParts("package", context.packageName, null)
+                                                }
+                                                context.startActivity(intent)
+                                            },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = FinAmber),
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, FinAmber.copy(alpha = 0.5f)),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text("Open FinGuard App Info", fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                                        }
                                     }
                                 }
                             }

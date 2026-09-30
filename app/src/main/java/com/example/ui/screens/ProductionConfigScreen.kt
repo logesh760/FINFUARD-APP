@@ -1,12 +1,23 @@
 package com.example.ui.screens
 
 import android.Manifest
+import android.app.NotificationManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.runtime.DisposableEffect
+import com.example.service.FinGuardNotificationListener
+import com.example.security.ShieldStateManager
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
@@ -112,6 +123,53 @@ fun ProductionConfigScreen(
     var webhookUrlInput by remember { mutableStateOf(viewModel.webhookUrl.value) }
     var kafkaTopicInput by remember { mutableStateOf(viewModel.kafkaTopic.value) }
     var selectedTab by remember { mutableStateOf(0) } // 0: Integrations, 1: Cloud & API, 2: Privacy Center
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var isNotificationAccessGranted by remember { mutableStateOf(false) }
+    var isSmsGranted by remember { mutableStateOf(false) }
+    var isPostNotificationsGranted by remember { mutableStateOf(false) }
+    var isBatteryOptimizationIgnored by remember { mutableStateOf(false) }
+    var isShieldArmed by remember { mutableStateOf(false) }
+
+    fun refreshSystemStatus() {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        isNotificationAccessGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            nm?.isNotificationListenerAccessGranted(
+                ComponentName(context, FinGuardNotificationListener::class.java)
+            ) == true
+        } else {
+            val flat = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
+            flat != null && flat.contains(context.packageName)
+        }
+        isSmsGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
+        isPostNotificationsGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        isBatteryOptimizationIgnored = powerManager?.isIgnoringBatteryOptimizations(context.packageName) == true
+        isShieldArmed = ShieldStateManager.isShieldActive(context)
+    }
+
+    val postNotificationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) {
+        refreshSystemStatus()
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshSystemStatus()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        refreshSystemStatus()
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     var testApiKeyStatus by remember { mutableStateOf<String?>(null) }
     var testingApi by remember { mutableStateOf(false) }
@@ -259,34 +317,43 @@ fun ProductionConfigScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, FinNavyBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "ANDROID COMPANION & PERMISSIONS",
-                            color = FinTextPrimary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "PERMISSION & SYSTEM STATUS CENTER",
+                                color = FinTextPrimary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Surface(
+                                color = if (isShieldArmed) FinEmerald.copy(alpha = 0.15f) else FinAmber.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = if (isShieldArmed) "SHIELD: ARMED" else "SHIELD: PAUSED",
+                                    color = if (isShieldArmed) FinEmerald else FinAmber,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "To enable autonomous message inspection for SMS, WhatsApp & Telegram, Android OS security permissions must be granted explicitly.",
+                            text = "Real-time system permission state for TECNO HiOS 12.6 / Android 13. All statuses reflect live Android OS kernel responses.",
                             color = FinTextSecondary,
                             fontSize = 11.sp,
                             lineHeight = 15.sp
                         )
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                        val isNotificationAccessGranted = remember(context) {
-                            try {
-                                NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
-                            } catch (e: Exception) {
-                                false
-                            }
-                        }
-                        val isSmsGranted = remember(context) {
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
-                        }
-
+                        // Row 1: SMS Permission & Alert Notification Permission
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -308,7 +375,7 @@ fun ProductionConfigScreen(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = if (isSmsGranted) "SMS: Granted" else "SMS: Not Granted",
+                                        text = if (isSmsGranted) "SMS: GRANTED" else "SMS: NOT GRANTED",
                                         color = if (isSmsGranted) FinEmerald else FinAmber,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold
@@ -317,7 +384,7 @@ fun ProductionConfigScreen(
                             }
 
                             Surface(
-                                color = if (isNotificationAccessGranted) FinEmerald.copy(alpha = 0.15f) else FinAmber.copy(alpha = 0.15f),
+                                color = if (isPostNotificationsGranted) FinEmerald.copy(alpha = 0.15f) else FinAmber.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -326,15 +393,15 @@ fun ProductionConfigScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = if (isNotificationAccessGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                        imageVector = if (isPostNotificationsGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
                                         contentDescription = null,
-                                        tint = if (isNotificationAccessGranted) FinEmerald else FinAmber,
+                                        tint = if (isPostNotificationsGranted) FinEmerald else FinAmber,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = if (isNotificationAccessGranted) "Notifications: Active" else "Notifications: Inactive",
-                                        color = if (isNotificationAccessGranted) FinEmerald else FinAmber,
+                                        text = if (isPostNotificationsGranted) "Alerts: GRANTED" else "Alerts: NOT GRANTED",
+                                        color = if (isPostNotificationsGranted) FinEmerald else FinAmber,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -342,15 +409,89 @@ fun ProductionConfigScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
+                        // Row 2: Notification Listener Access & Battery Optimization
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                color = when {
+                                    isNotificationAccessGranted -> FinEmerald.copy(alpha = 0.15f)
+                                    Build.VERSION.SDK_INT >= 33 -> FinCrimson.copy(alpha = 0.15f)
+                                    else -> FinAmber.copy(alpha = 0.15f)
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (isNotificationAccessGranted) Icons.Default.CheckCircle else Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = when {
+                                            isNotificationAccessGranted -> FinEmerald
+                                            Build.VERSION.SDK_INT >= 33 -> FinCrimson
+                                            else -> FinAmber
+                                        },
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = when {
+                                            isNotificationAccessGranted -> "Listener: ACTIVE"
+                                            Build.VERSION.SDK_INT >= 33 -> "Listener: SYSTEM RESTRICTED"
+                                            else -> "Listener: NOT ACTIVE"
+                                        },
+                                        color = when {
+                                            isNotificationAccessGranted -> FinEmerald
+                                            Build.VERSION.SDK_INT >= 33 -> FinCrimson
+                                            else -> FinAmber
+                                        },
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                color = if (isBatteryOptimizationIgnored) FinEmerald.copy(alpha = 0.15f) else FinAmber.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (isBatteryOptimizationIgnored) Icons.Default.CheckCircle else Icons.Default.Settings,
+                                        contentDescription = null,
+                                        tint = if (isBatteryOptimizationIgnored) FinEmerald else FinAmber,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (isBatteryOptimizationIgnored) "Battery: UNRESTRICTED" else "Battery: OPTIMIZED",
+                                        color = if (isBatteryOptimizationIgnored) FinEmerald else FinAmber,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Action Buttons: Notification Listener & SMS
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
                                 onClick = {
-                                    // Open Android Notification Listener Settings
                                     val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                                     context.startActivity(intent)
                                 },
@@ -376,6 +517,25 @@ fun ProductionConfigScreen(
                             }
                         }
 
+                        // Android 13 POST_NOTIFICATIONS button (if not yet granted)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !isPostNotificationsGranted) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    postNotificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = FinCyan),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, FinCyan.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.Info, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Request Alert Notification Permission", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        // Sideloaded / Restricted Settings Warning Card
                         if (!isNotificationAccessGranted) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Surface(
@@ -388,11 +548,11 @@ fun ProductionConfigScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Default.Info, contentDescription = null, tint = FinAmber, modifier = Modifier.size(14.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Android 13+ Sideload Notice (\"Restricted setting\")", color = FinAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("TECNO HiOS 12.6 / Android 13 (\"Restricted setting\")", color = FinAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "Android protects sideloaded APKs by restricting Notification Access. To allow:\n1. Tap 'Open App Info' below\n2. Tap the three-dot menu (⋮) in the top-right corner\n3. Tap 'Allow restricted settings' and confirm device PIN\n4. Return here and tap 'Enable Notification Access'",
+                                        text = "\"Restricted setting\" is Android 13's OS policy for sideloaded APKs. To unlock on this device:\n1. Tap 'Open App Info' below to go to FinGuard's system page.\n2. Tap the three-dot menu (⋮) in the top-right corner.\n   (Note: HiOS only reveals this menu AFTER you have attempted to toggle Notification Access once).\n3. Tap 'Allow restricted settings' and confirm your screen lock (PIN/fingerprint).\n4. Return here and tap 'Enable Notification Access'. The switch is now active!",
                                         color = FinTextSecondary,
                                         fontSize = 10.sp,
                                         lineHeight = 14.sp
@@ -413,6 +573,54 @@ fun ProductionConfigScreen(
                                         Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(13.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("Open App Info (Allow Restricted)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
+                        }
+
+                        // TECNO HiOS Battery Optimization Card
+                        if (!isBatteryOptimizationIgnored) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Surface(
+                                color = FinNavyElevated,
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, FinCyan.copy(alpha = 0.3f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Settings, contentDescription = null, tint = FinCyan, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("HiOS Power Marathon Background Management", color = FinCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "To ensure FinGuard intercepts threats when your screen is locked or idle, allow background execution in HiOS Battery settings.",
+                                        color = FinTextSecondary,
+                                        fontSize = 10.sp,
+                                        lineHeight = 14.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedButton(
+                                        onClick = {
+                                            try {
+                                                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                val fallbackIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                    data = Uri.fromParts("package", context.packageName, null)
+                                                }
+                                                context.startActivity(fallbackIntent)
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = FinCyan),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, FinCyan.copy(alpha = 0.5f)),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(13.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Configure Battery (Don't Optimize)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                                     }
                                 }
                             }
